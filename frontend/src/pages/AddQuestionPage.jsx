@@ -96,7 +96,7 @@ const AddQuestionPage = () => {
                 </div>
 
                 <div style={{ marginBottom: '15px' }}>
-                    <label><strong>Mã nhóm (Gom câu bài Đọc/Nghe):</strong></label><br />
+                    <label><strong>Mã nhóm:</strong></label><br />
                     <input type="text" value={groupId} onChange={(e) => setGroupId(e.target.value)} placeholder="VD: READING_01" style={{ width: '100%', padding: '5px' }} />
                 </div>
 
