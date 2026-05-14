@@ -1,10 +1,9 @@
 import axios from 'axios';
 
 const axiosClient = axios.create({
-    baseURL: 'http://localhost:5000/api', // Đường dẫn đến Backend Node.js của bạn
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    // Thay link localhost bằng link Render của bạn (nhớ giữ lại đoạn /api ở cuối)
+    baseURL: 'https://bilionexam.onrender.com/api',
+    headers: { 'Content-Type': 'application/json' },
 });
 
 // Tự động gắn Token vào mọi yêu cầu nếu đã đăng nhập
