@@ -1,0 +1,68 @@
+### Đăng ký tài khoản Super Admin đầu tiên
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "andoannhat",
+  "email": "doannhatan.dev@gmail.com",
+  "password": "A1122448816",
+  "role": "Super Admin"
+}
+
+### Đăng nhập hệ thống
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "doannhatan.dev@gmail.com",
+  "password": "A1122448816"
+}
+
+### Tạo đề thi mới (Cần quẹt thẻ Token)
+POST http://localhost:5000/api/exams/create
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMDYwZmMwN2UzNzUwZDdjMDQwOTIyMCIsInJvbGUiOiJTdXBlciBBZG1pbiIsImlhdCI6MTc3ODc4MjYxNCwiZXhwIjoxNzc4ODY5MDE0fQ.q8XmUJUscWdKw2VfNV8ZjrwHJJOC1Ib5p3q-UvDrxGA
+
+{
+  "title": "Đề thi Tiếng Anh Lớp 12 - Học kỳ 1",
+  "timeLimit": 45,
+  "isPublished": false
+}
+
+### Thêm câu hỏi vào đề thi (Cần quẹt thẻ Token)
+POST http://localhost:5000/api/questions/create
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMDYwZmMwN2UzNzUwZDdjMDQwOTIyMCIsInJvbGUiOiJTdXBlciBBZG1pbiIsImlhdCI6MTc3ODc4MjYxNCwiZXhwIjoxNzc4ODY5MDE0fQ.q8XmUJUscWdKw2VfNV8ZjrwHJJOC1Ib5p3q-UvDrxGA
+
+{
+  "examId": "6a0612eb4bf8af372d203492",
+  "content": "Choose the correct answer: I ___ a student.",
+  "mediaType": "none",
+  "mediaUrl": "",
+  "options": [
+    { "id": "A", "text": "am" },
+    { "id": "B", "text": "is" },
+    { "id": "C", "text": "are" },
+    { "id": "D", "text": "be" }
+  ],
+  "correctAnswer": "A"
+}
+
+### Học sinh lấy đề thi về làm (Phương thức GET)
+GET http://localhost:5000/api/exams/6a0612eb4bf8af372d203492
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMDYwZmMwN2UzNzUwZDdjMDQwOTIyMCIsInJvbGUiOiJTdXBlciBBZG1pbiIsImlhdCI6MTc3ODc4MjYxNCwiZXhwIjoxNzc4ODY5MDE0fQ.q8XmUJUscWdKw2VfNV8ZjrwHJJOC1Ib5p3q-UvDrxGA
+
+### Học sinh nộp bài thi
+POST http://localhost:5000/api/exams/6a0612eb4bf8af372d203492/submit
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhMDYwZmMwN2UzNzUwZDdjMDQwOTIyMCIsInJvbGUiOiJTdXBlciBBZG1pbiIsImlhdCI6MTc3ODc4MjYxNCwiZXhwIjoxNzc4ODY5MDE0fQ.q8XmUJUscWdKw2VfNV8ZjrwHJJOC1Ib5p3q-UvDrxGA
+
+{
+  "answers": [
+    {
+      "questionId": "6a061427822f00a8a9e88ab8",
+      "selectedOption": "A"
+    }
+  ]
+}
