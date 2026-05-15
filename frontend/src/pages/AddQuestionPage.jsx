@@ -54,15 +54,43 @@ const AddQuestionPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // 1. Chuẩn hóa đáp án thành dạng Chuỗi (String) để Database không bị "sốc"
+        let finalAnswer = correctAnswer;
+        if (Array.isArray(correctAnswer)) {
+            // Nếu là mảng ['A', 'B'], nối lại thành chuỗi "A,B"
+            finalAnswer = correctAnswer.join(',');
+        }
+
+        // 2. Chặn lỗi từ Frontend: Đảm bảo không gửi đáp án rỗng lên Server
+        if (!finalAnswer || finalAnswer.toString().trim() === '') {
+            alert('⚠️ Cảnh báo: Bạn chưa nhập hoặc chọn đáp án đúng cho câu này!');
+            return;
+        }
+
         try {
             await axiosClient.post('/questions/create', {
-                examId, content, points, passageText, groupId, type, options, correctAnswer, penaltyRules
+                examId,
+                content,
+                points,
+                passageText,
+                groupId,
+                type,
+                options,
+                correctAnswer: finalAnswer, // Gửi đáp án đã chuẩn hóa lên Server
+                penaltyRules
             });
+
             alert('✅ Thêm câu hỏi thành công!');
-            // Reset form nhưng giữ lại groupId/type để mẹ nhập tiếp các câu cùng loại
+
+            // Reset form cho câu tiếp theo
             setContent('');
             setPenaltyRules([]);
-            if (type === 'multiple') setCorrectAnswer([]);
+            if (type === 'multiple') {
+                setCorrectAnswer([]);
+            } else if (type === 'short') {
+                setCorrectAnswer('');
+            }
         } catch (error) {
             alert('❌ Lỗi: ' + (error.response?.data?.message || 'Không thể thêm câu hỏi'));
         }
