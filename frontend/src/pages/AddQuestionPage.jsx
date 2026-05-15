@@ -55,18 +55,18 @@ const AddQuestionPage = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 1. Chuẩn hóa đáp án thành dạng Chuỗi (String) để Database không bị "sốc"
         let finalAnswer = correctAnswer;
         if (Array.isArray(correctAnswer)) {
-            // Nếu là mảng ['A', 'B'], nối lại thành chuỗi "A,B"
             finalAnswer = correctAnswer.join(',');
         }
 
-        // 2. Chặn lỗi từ Frontend: Đảm bảo không gửi đáp án rỗng lên Server
         if (!finalAnswer || finalAnswer.toString().trim() === '') {
             alert('⚠️ Cảnh báo: Bạn chưa nhập hoặc chọn đáp án đúng cho câu này!');
             return;
         }
+
+        // THÊM ĐOẠN NÀY: Nếu là câu tự luận ngắn, xóa sạch options để Server không bị lỗi
+        const finalOptions = type === 'short' ? [] : options;
 
         try {
             await axiosClient.post('/questions/create', {
@@ -76,14 +76,13 @@ const AddQuestionPage = () => {
                 passageText,
                 groupId,
                 type,
-                options,
-                correctAnswer: finalAnswer, // Gửi đáp án đã chuẩn hóa lên Server
+                options: finalOptions, // Gửi options đã xử lý
+                correctAnswer: finalAnswer,
                 penaltyRules
             });
 
             alert('✅ Thêm câu hỏi thành công!');
 
-            // Reset form cho câu tiếp theo
             setContent('');
             setPenaltyRules([]);
             if (type === 'multiple') {
