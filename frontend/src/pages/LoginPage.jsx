@@ -37,7 +37,7 @@ const LoginPage = () => {
                 <div style={{ marginBottom: '15px' }}>
                     <input
                         type="text"
-                        placeholder="Tên đăng nhập"
+                        placeholder="Tên đăng nhập hoặc Email"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         required

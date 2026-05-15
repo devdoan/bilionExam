@@ -38,4 +38,46 @@ router.post('/register', async (req, res) => {
 });
 
 // Giữ nguyên phần router.post('/login', ...) cũ
+// 2. API ĐĂNG NHẬP (Đã nâng cấp logic)
+router.post('/login', async (req, res) => {
+    try {
+        // Biến username gửi từ Frontend giờ có thể chứa Tên đăng nhập HOẶC Email
+        const { username, password } = req.body;
+
+        // LOGIC MỚI: Tìm trong Database xem có ai khớp Username HOẶC Email không
+        const user = await User.findOne({
+            $or: [
+                { username: username },
+                { email: username }
+            ]
+        });
+
+        // Nếu không tìm thấy ai
+        if (!user) {
+            return res.status(400).json({ message: '⛔ Tài khoản hoặc Email không tồn tại!' });
+        }
+
+        // So sánh mật khẩu
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(400).json({ message: '⛔ Mật khẩu không chính xác!' });
+        }
+
+        // Đăng nhập thành công, cấp thẻ
+        const token = jwt.sign(
+            { id: user._id, role: user.role },
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' }
+        );
+
+        res.status(200).json({
+            message: '✅ Đăng nhập thành công!',
+            token,
+            user: { id: user._id, username: user.username, role: user.role }
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: '❌ Lỗi server!', error: error.message });
+    }
+});
 module.exports = router;
