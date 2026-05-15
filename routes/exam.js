@@ -76,14 +76,11 @@ router.get('/:id', verifyToken, async (req, res) => {
 });
 
 /**
- * 4. API: Nộp bài và chấm điểm
- * QUYỀN: Thường là Student (nhưng cho phép Teacher/Admin làm thử cũng không sao)
+ * 4. API: Nộp bài và chấm điểm (Đã được nâng cấp logic đồng bộ)
  */
 router.post('/:id/submit', verifyToken, async (req, res) => {
-    // ... Giữ nguyên logic chấm điểm cực hay của bạn ở đây ...
-    // (Phần này bạn đã tối ưu Penalty và so sánh đa dạng loại câu hỏi rồi nên mình không sửa logic bên trong)
     try {
-        const { answers } = req.body;
+        const { answers } = req.body; // answers lúc này là Object: { "id_cau_1": "A", "id_cau_2": "A,B" }
         const examId = req.params.id;
         const studentId = req.user.id;
 
@@ -98,28 +95,39 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
         const totalQuestions = questions.length;
         let groupMistakes = {};
 
+        // Khởi tạo bộ đếm điểm nhóm (Giữ nguyên logic của bạn)
         questions.forEach(q => {
             totalExamPoints += q.points;
             if (q.groupId) groupMistakes[q.groupId] = 0;
         });
 
-        answers.forEach(studentAnswer => {
-            const question = questions.find(q => q._id.toString() === studentAnswer.questionId);
-            if (!question) return;
+        const resultAnswers = []; // Mảng chuẩn bị xuất xưởng vào Database Result.js
+
+        // Vòng lặp chấm điểm TỪNG CÂU HỎI TRONG ĐỀ
+        questions.forEach(question => {
+            // 1. Lấy đáp án học sinh từ Object (Nếu học sinh bỏ trống, tự đổi thành chuỗi rỗng "")
+            const studentAnsString = answers[question._id.toString()] || "";
+
+            // 2. Đóng gói vào mảng chuẩn định dạng của models/Result.js
+            resultAnswers.push({
+                questionId: question._id,
+                selectedOption: studentAnsString
+            });
 
             let isCorrect = false;
-            if (question.type === 'single') {
-                isCorrect = question.correctAnswer === studentAnswer.selectedOption;
-            } else if (question.type === 'multiple') {
-                const studentChoices = studentAnswer.selectedOptions || [];
-                isCorrect = question.correctAnswer.length === studentChoices.length &&
-                    question.correctAnswer.every(val => studentChoices.includes(val));
-            } else if (question.type === 'short') {
-                const studentText = (studentAnswer.answerText || "").trim().toLowerCase();
-                const correctText = question.correctAnswer.trim().toLowerCase();
-                isCorrect = studentText === correctText;
+
+            // 3. Logic chấm điểm Cực Nhanh (Vì mọi thứ đã được ép thành Chuỗi)
+            if (question.type === 'short') {
+                // Câu trả lời ngắn: So sánh chuỗi (không phân biệt hoa thường, cắt khoảng trắng 2 đầu)
+                const studentText = studentAnsString.trim().toLowerCase();
+                const correctText = (question.correctAnswer || "").toString().trim().toLowerCase();
+                isCorrect = (studentText === correctText && studentText !== "");
+            } else {
+                // Trắc nghiệm (1 đáp án hoặc nhiều đáp án): Chỉ cần so sánh chuỗi bằng nhau!
+                isCorrect = (studentAnsString === question.correctAnswer);
             }
 
+            // 4. Cộng điểm hoặc tính lỗi
             if (isCorrect) {
                 earnedPoints += question.points;
                 correctCount++;
@@ -128,6 +136,7 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
             }
         });
 
+        // 5. Logic trừ điểm lũy tiến (Giữ nguyên code xuất sắc của bạn)
         for (const groupId in groupMistakes) {
             const mistakes = groupMistakes[groupId];
             if (mistakes > 0) {
@@ -140,15 +149,17 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
             }
         }
 
+        // Tính toán điểm số cuối cùng (thang điểm 10)
         if (earnedPoints < 0) earnedPoints = 0;
         const score = (earnedPoints / totalExamPoints) * 10;
         const roundedScore = Math.round(score * 100) / 100;
 
+        // Lưu vào Database với mảng answers đã chuẩn hóa
         const newResult = new Result({
             studentId,
             examId,
             score: roundedScore,
-            answers
+            answers: resultAnswers
         });
 
         await newResult.save();

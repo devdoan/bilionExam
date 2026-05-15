@@ -18,10 +18,11 @@ router.get('/all', verifyToken, authorize(['Super Admin']), async (req, res) => 
 router.put('/update-role', verifyToken, authorize(['Super Admin']), async (req, res) => {
     try {
         const { userId, newRole } = req.body;
-        await User.findByIdAndUpdate(userId, { role: newRole });
+        // Bổ sung { runValidators: true } để chặn mọi role lạ không có trong danh sách
+        await User.findByIdAndUpdate(userId, { role: newRole }, { runValidators: true });
         res.json({ message: '✅ Đã cập nhật quyền hạn thành công!' });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi cập nhật' });
+        res.status(500).json({ message: 'Lỗi cập nhật', error: error.message });
     }
 });
 
