@@ -36,6 +36,7 @@ mongoose.connect(MONGO_URI)
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/exams', require('./routes/exam'));
 app.use('/api/questions', require('./routes/question'));
+app.use('/api/users', require('./routes/user'));
 
 // Tạo một API test cơ bản để kiểm tra
 app.get('/', (req, res) => {
