@@ -8,7 +8,11 @@ require('dotenv').config(); // Giúp đọc các biến bảo mật từ file .e
 const app = express();
 
 // Cấu hình Middleware
-app.use(cors()); // Người gác cổng: Cho phép Frontend có quyền gửi yêu cầu đến Backend [cite: 272]
+app.use(cors({
+    origin: 'https://nathanli.site', // Chỉ cho tên miền này gọi API
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+})); // Người gác cổng: Cho phép Frontend có quyền gửi yêu cầu đến Backend [cite: 272]
 app.use(express.json()); // Cho phép Server đọc và xử lý dữ liệu dạng JSON
 
 // Cấu hình cổng chạy và lấy chuỗi kết nối Database
