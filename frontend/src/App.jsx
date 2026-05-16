@@ -64,6 +64,13 @@ function App() {
                 <Route path="*" element={<Navigate to="/login" />} />
 
                 <Route path="/register" element={<RegisterPage />} />
+
+                <Route path="/admin" element={
+                    <ProtectedRoute allowedRoles={['Super Admin']}>
+                        <AdminUserPage />
+                    </ProtectedRoute>
+                } />
+
             </Routes>
         </Router>
     );

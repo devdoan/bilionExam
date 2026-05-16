@@ -4,16 +4,23 @@ const Exam = require('../models/Exam');
 const Question = require('../models/Question');
 const Result = require('../models/Result');
 
-// THAY ĐỔI: Nhập cả 2 hàm từ chú bảo vệ mới
+// Nhập bộ đôi bảo vệ từ middleware auth
 const { verifyToken, authorize } = require('../middleware/auth');
 
 /**
- * 1. API: Lấy danh sách đề thi của Giáo viên/Admin (Dashboard quản trị)
- * QUYỀN: Teacher, Super Admin
+ * 1. API: Lấy danh sách đề thi (Đã nâng cấp thông minh cho cả học sinh và giáo viên)
+ * URL: GET http://localhost:5000/api/exams/
  */
-router.get('/', verifyToken, authorize(['Teacher', 'Super Admin']), async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
     try {
-        const exams = await Exam.find({ teacherId: req.user.id }).sort({ createdAt: -1 });
+        let exams;
+        if (req.user.role === 'Student') {
+            // Học sinh chỉ được thấy những đề mà Giáo viên đã đánh dấu là "Đã đăng"
+            exams = await Exam.find({ isPublished: true }).sort({ createdAt: -1 });
+        } else {
+            // Giáo viên/Admin thì thấy toàn bộ đề do mình tạo ra
+            exams = await Exam.find({ teacherId: req.user.id }).sort({ createdAt: -1 });
+        }
         res.status(200).json(exams);
     } catch (error) {
         res.status(500).json({ message: '❌ Lỗi lấy danh sách đề!', error: error.message });
@@ -22,7 +29,7 @@ router.get('/', verifyToken, authorize(['Teacher', 'Super Admin']), async (req, 
 
 /**
  * 2. API: Tạo đề thi mới
- * QUYỀN: Teacher, Super Admin
+ * URL: POST http://localhost:5000/api/exams/create
  */
 router.post('/create', verifyToken, authorize(['Teacher', 'Super Admin']), async (req, res) => {
     try {
@@ -44,7 +51,7 @@ router.post('/create', verifyToken, authorize(['Teacher', 'Super Admin']), async
 
 /**
  * 3. API: Lấy chi tiết đề thi cho Học sinh làm bài
- * QUYỀN: Tất cả (Student, Teacher, Super Admin) đều được xem đề
+ * URL: GET http://localhost:5000/api/exams/:id
  */
 router.get('/:id', verifyToken, async (req, res) => {
     try {
@@ -62,7 +69,7 @@ router.get('/:id', verifyToken, async (req, res) => {
             points: q.points,
             passageText: q.passageText,
             groupId: q.groupId,
-            type: q.type // Gửi kèm loại câu hỏi để giao diện hiển thị đúng (radio/checkbox/input)
+            type: q.type
         }));
 
         res.status(200).json({
@@ -76,11 +83,12 @@ router.get('/:id', verifyToken, async (req, res) => {
 });
 
 /**
- * 4. API: Nộp bài và chấm điểm (Đã được nâng cấp logic đồng bộ)
+ * 4. API: Nộp bài và chấm điểm (Đã được nâng cấp logic đồng bộ chuỗi)
+ * URL: POST http://localhost:5000/api/exams/:id/submit
  */
 router.post('/:id/submit', verifyToken, async (req, res) => {
     try {
-        const { answers } = req.body; // answers lúc này là Object: { "id_cau_1": "A", "id_cau_2": "A,B" }
+        const { answers } = req.body;
         const examId = req.params.id;
         const studentId = req.user.id;
 
@@ -95,20 +103,16 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
         const totalQuestions = questions.length;
         let groupMistakes = {};
 
-        // Khởi tạo bộ đếm điểm nhóm (Giữ nguyên logic của bạn)
         questions.forEach(q => {
             totalExamPoints += q.points;
             if (q.groupId) groupMistakes[q.groupId] = 0;
         });
 
-        const resultAnswers = []; // Mảng chuẩn bị xuất xưởng vào Database Result.js
+        const resultAnswers = [];
 
-        // Vòng lặp chấm điểm TỪNG CÂU HỎI TRONG ĐỀ
         questions.forEach(question => {
-            // 1. Lấy đáp án học sinh từ Object (Nếu học sinh bỏ trống, tự đổi thành chuỗi rỗng "")
             const studentAnsString = answers[question._id.toString()] || "";
 
-            // 2. Đóng gói vào mảng chuẩn định dạng của models/Result.js
             resultAnswers.push({
                 questionId: question._id,
                 selectedOption: studentAnsString
@@ -116,18 +120,14 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
 
             let isCorrect = false;
 
-            // 3. Logic chấm điểm Cực Nhanh (Vì mọi thứ đã được ép thành Chuỗi)
             if (question.type === 'short') {
-                // Câu trả lời ngắn: So sánh chuỗi (không phân biệt hoa thường, cắt khoảng trắng 2 đầu)
                 const studentText = studentAnsString.trim().toLowerCase();
                 const correctText = (question.correctAnswer || "").toString().trim().toLowerCase();
                 isCorrect = (studentText === correctText && studentText !== "");
             } else {
-                // Trắc nghiệm (1 đáp án hoặc nhiều đáp án): Chỉ cần so sánh chuỗi bằng nhau!
                 isCorrect = (studentAnsString === question.correctAnswer);
             }
 
-            // 4. Cộng điểm hoặc tính lỗi
             if (isCorrect) {
                 earnedPoints += question.points;
                 correctCount++;
@@ -136,7 +136,6 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
             }
         });
 
-        // 5. Logic trừ điểm lũy tiến (Giữ nguyên code xuất sắc của bạn)
         for (const groupId in groupMistakes) {
             const mistakes = groupMistakes[groupId];
             if (mistakes > 0) {
@@ -149,12 +148,10 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
             }
         }
 
-        // Tính toán điểm số cuối cùng (thang điểm 10)
         if (earnedPoints < 0) earnedPoints = 0;
         const score = (earnedPoints / totalExamPoints) * 10;
         const roundedScore = Math.round(score * 100) / 100;
 
-        // Lưu vào Database với mảng answers đã chuẩn hóa
         const newResult = new Result({
             studentId,
             examId,
@@ -178,6 +175,7 @@ router.post('/:id/submit', verifyToken, async (req, res) => {
 
 /**
  * 5. API: Lấy kết quả cá nhân
+ * URL: GET http://localhost:5000/api/exams/results/:resultId
  */
 router.get('/results/:resultId', verifyToken, async (req, res) => {
     try {
@@ -195,7 +193,7 @@ router.get('/results/:resultId', verifyToken, async (req, res) => {
 
 /**
  * 6. API: Xuất bảng điểm cho Giáo viên
- * QUYỀN: Teacher, Super Admin
+ * URL: GET http://localhost:5000/api/exams/:id/all-results
  */
 router.get('/:id/all-results', verifyToken, authorize(['Teacher', 'Super Admin']), async (req, res) => {
     try {
@@ -208,4 +206,41 @@ router.get('/:id/all-results', verifyToken, authorize(['Teacher', 'Super Admin']
     }
 });
 
+/**
+ * =========================================================================
+ * 7. API MỚI THÊM VÀO: XÓA ĐỀ THI (VÀ TOÀN BỘ CÂU HỎI + KẾT QUẢ ĐI KÈM)
+ * URL: DELETE http://localhost:5000/api/exams/:id
+ * =========================================================================
+ */
+router.delete('/:id', verifyToken, authorize(['Teacher', 'Super Admin']), async (req, res) => {
+    try {
+        const examId = req.params.id;
+
+        // 1. Kiểm tra xem đề thi có tồn tại không
+        const exam = await Exam.findById(examId);
+        if (!exam) {
+            return res.status(404).json({ message: '⛔ Không tìm thấy đề thi cần xóa!' });
+        }
+
+        // 2. Bảo mật: Chỉ người tạo ra đề này hoặc Super Admin mới có quyền xóa
+        if (exam.teacherId.toString() !== req.user.id && req.user.role !== 'Super Admin') {
+            return res.status(403).json({ message: '⛔ Bạn không có quyền xóa đề thi của người khác!' });
+        }
+
+        // 3. Dọn rác Database: Xóa sạch tất cả câu hỏi thuộc về đề này
+        await Question.deleteMany({ examId: examId });
+
+        // 4. Dọn rác Database: Xóa sạch tất cả kết quả thi của học sinh ở đề này
+        await Result.deleteMany({ examId: examId });
+
+        // 5. Cuối cùng, xóa bỏ chính đề thi đó khỏi hệ thống
+        await Exam.findByIdAndDelete(examId);
+
+        res.status(200).json({ message: '✅ Đã xóa đề thi và toàn bộ dữ liệu liên quan thành công!' });
+    } catch (error) {
+        res.status(500).json({ message: '❌ Lỗi server khi xóa đề thi!', error: error.message });
+    }
+});
+
+// Luôn luôn nằm ở dòng cuối cùng của file route
 module.exports = router;
