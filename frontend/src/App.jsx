@@ -10,6 +10,7 @@ import ExamDetailPage from './pages/ExamDetailPage';
 import ExamPage from './pages/ExamPage';
 import ResultDetailPage from './pages/ResultDetailPage';
 import RegisterPage from './pages/RegisterPage';
+import AdminUserPage from './pages/AdminUserPage';
 
 // 2. Nhập "Máy quét thẻ" ProtectedRoute
 import ProtectedRoute from './components/ProtectedRoute';
