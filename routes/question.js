@@ -58,4 +58,113 @@ router.post('/create', verifyToken, authorize(['Teacher', 'Super Admin']), async
     }
 });
 
+/**
+ * API: Cập nhật câu hỏi
+ * QUYỀN: Chỉ Teacher và Super Admin mới được phép
+ * Đường dẫn: http://localhost:5000/api/questions/:id
+ */
+router.put('/:id', verifyToken, authorize(['Teacher', 'Super Admin']), async (req, res) => {
+    try {
+        const questionId = req.params.id;
+        const {
+            content,
+            points,
+            passageText,
+            groupId,
+            type,
+            options,
+            correctAnswer,
+            penaltyRules,
+            mediaType,
+            mediaUrl
+        } = req.body;
+
+        // Tìm câu hỏi cần cập nhật
+        const question = await Question.findById(questionId);
+        if (!question) {
+            return res.status(404).json({ message: '⛔ Không tìm thấy câu hỏi!' });
+        }
+
+        // Cập nhật các trường
+        question.content = content;
+        question.points = points || 1;
+        question.passageText = passageText || '';
+        question.groupId = groupId || '';
+        question.type = type || 'single';
+        question.options = options;
+        question.correctAnswer = correctAnswer;
+        question.penaltyRules = penaltyRules || [];
+        question.mediaType = mediaType || 'none';
+        question.mediaUrl = mediaUrl || '';
+
+        await question.save();
+
+        res.status(200).json({
+            message: '✅ Cập nhật câu hỏi thành công!',
+            question
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: '❌ Lỗi server khi cập nhật câu hỏi!',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * API: Xóa câu hỏi
+ * QUYỀN: Chỉ Teacher và Super Admin mới được phép
+ * Đường dẫn: http://localhost:5000/api/questions/:id
+ */
+router.delete('/:id', verifyToken, authorize(['Teacher', 'Super Admin']), async (req, res) => {
+    try {
+        const questionId = req.params.id;
+
+        const question = await Question.findById(questionId);
+        if (!question) {
+            return res.status(404).json({ message: '⛔ Không tìm thấy câu hỏi!' });
+        }
+
+        await Question.findByIdAndDelete(questionId);
+
+        res.status(200).json({
+            message: '✅ Xóa câu hỏi thành công!'
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: '❌ Lỗi server khi xóa câu hỏi!',
+            error: error.message
+        });
+    }
+});
+
+/**
+ * API: Lấy thông tin một câu hỏi
+ * QUYỀN: Chỉ Teacher và Super Admin mới được phép
+ * Đường dẫn: http://localhost:5000/api/questions/:id
+ */
+router.get('/:id', verifyToken, authorize(['Teacher', 'Super Admin']), async (req, res) => {
+    try {
+        const questionId = req.params.id;
+
+        const question = await Question.findById(questionId);
+        if (!question) {
+            return res.status(404).json({ message: '⛔ Không tìm thấy câu hỏi!' });
+        }
+
+        res.status(200).json({
+            message: '✅ Lấy thông tin câu hỏi thành công!',
+            question
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            message: '❌ Lỗi server khi lấy câu hỏi!',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

@@ -8,16 +8,31 @@ const ExamDetailPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        const fetchDetail = async () => {
-            try {
-                const response = await axiosClient.get(`/exams/${examId}`);
-                setExamData(response.data);
-            } catch (error) {
-                alert('❌ Không thể tải chi tiết đề thi');
-            }
-        };
         fetchDetail();
     }, [examId]);
+
+    const fetchDetail = async () => {
+        try {
+            const response = await axiosClient.get(`/exams/${examId}`);
+            setExamData(response.data);
+        } catch (error) {
+            alert('❌ Không thể tải chi tiết đề thi');
+        }
+    };
+
+    const handleDeleteQuestion = async (questionId) => {
+        if (!window.confirm('⚠️ Bạn có chắc chắn muốn xóa câu hỏi này?')) {
+            return;
+        }
+
+        try {
+            await axiosClient.delete(`/questions/${questionId}`);
+            alert('✅ Đã xóa câu hỏi thành công!');
+            fetchDetail(); // Tải lại danh sách câu hỏi
+        } catch (error) {
+            alert('❌ Không thể xóa câu hỏi: ' + (error.response?.data?.message || error.message));
+        }
+    };
 
     if (!examData) return <p style={{ padding: '20px', textAlign: 'center' }}>⏳ Đang tải dữ liệu...</p>;
 
@@ -91,6 +106,22 @@ const ExamDetailPage = () => {
                                 🏷️ Thuộc nhóm câu hỏi: <strong>{q.groupId}</strong>
                             </p>
                         )}
+
+                        {/* Nút Sửa và Xóa câu hỏi */}
+                        <div style={{ marginTop: '15px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                            <button
+                                onClick={() => navigate(`/edit-question/${examId}/${q._id}`)}
+                                style={{ padding: '8px 15px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >
+                                ✏️ Sửa
+                            </button>
+                            <button
+                                onClick={() => handleDeleteQuestion(q._id)}
+                                style={{ padding: '8px 15px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >
+                                🗑️ Xóa
+                            </button>
+                        </div>
                     </div>
                 ))
             )}

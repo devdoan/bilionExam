@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import CreateExamPage from './pages/CreateExamPage';
 import AddQuestionPage from './pages/AddQuestionPage';
+import EditQuestionPage from './pages/EditQuestionPage';
 import ExamDetailPage from './pages/ExamDetailPage';
 import ExamPage from './pages/ExamPage';
 import ResultDetailPage from './pages/ResultDetailPage';
@@ -52,6 +53,12 @@ function App() {
                 <Route path="/add-question/:examId" element={
                     <ProtectedRoute allowedRoles={['Teacher', 'Super Admin']}>
                         <AddQuestionPage />
+                    </ProtectedRoute>
+                } />
+
+                <Route path="/edit-question/:examId/:questionId" element={
+                    <ProtectedRoute allowedRoles={['Teacher', 'Super Admin']}>
+                        <EditQuestionPage />
                     </ProtectedRoute>
                 } />
 
